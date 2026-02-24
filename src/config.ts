@@ -169,9 +169,9 @@ export function resolveAccount(
     undefined;
 
   const configured = Boolean(
-    token && encodingAESKey && corpId && corpSecret && openKfId
+    token && encodingAESKey && corpId && corpSecret
   );
-  const canSendActive = Boolean(corpId && corpSecret && openKfId);
+  const canSendActive = Boolean(corpId && corpSecret);
   const enabled = merged.enabled !== false;
 
   return {

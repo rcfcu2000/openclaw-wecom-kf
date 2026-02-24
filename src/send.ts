@@ -14,6 +14,8 @@ export type SendMessageOptions = {
   text?: string;
   /** 媒体文件路径或 URL */
   mediaPath?: string;
+  /** 客服账号 ID (open_kfid)，不传则使用 account 配置中的值 */
+  openKfId?: string;
 };
 
 export type SendResult = {
@@ -52,7 +54,16 @@ export async function sendWecomKfDM(
     return {
       ok: false,
       error:
-        "Account not configured for active sending (missing corpId, corpSecret, or openKfId)",
+        "Account not configured for active sending (missing corpId or corpSecret)",
+    };
+  }
+
+  const resolvedOpenKfId = options.openKfId ?? account.openKfId;
+  if (!resolvedOpenKfId) {
+    return {
+      ok: false,
+      error:
+        "openKfId not available (not in config and not provided in options)",
     };
   }
 
@@ -61,7 +72,7 @@ export async function sendWecomKfDM(
 
   if (options.text?.trim()) {
     try {
-      const result = await sendKfTextMessage(account, userId, options.text);
+      const result = await sendKfTextMessage(account, userId, options.text, resolvedOpenKfId);
       results.push({
         ok: result.errcode === 0,
         msgid: result.msgid,
@@ -103,21 +114,17 @@ export async function sendWecomKfDM(
         "image"
       );
 
-      if (!account.openKfId) {
-        results.push({ ok: false, error: "openKfId not configured" });
-      } else {
-        const result = await sendKfMessage(account, {
-          touser: userId,
-          open_kfid: account.openKfId,
-          msgtype: "image",
-          image: { media_id: mediaId },
-        });
-        results.push({
-          ok: result.errcode === 0,
-          msgid: result.msgid,
-          error: result.errcode !== 0 ? result.errmsg : undefined,
-        });
-      }
+      const result = await sendKfMessage(account, {
+        touser: userId,
+        open_kfid: resolvedOpenKfId,
+        msgtype: "image",
+        image: { media_id: mediaId },
+      });
+      results.push({
+        ok: result.errcode === 0,
+        msgid: result.msgid,
+        error: result.errcode !== 0 ? result.errmsg : undefined,
+      });
     } catch (err) {
       results.push({
         ok: false,

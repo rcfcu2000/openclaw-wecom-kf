@@ -317,7 +317,17 @@ export const wecomKfPlugin = {
           ok: false,
           messageId: "",
           error: new Error(
-            "Account not configured for active sending (missing corpId, corpSecret, or openKfId)"
+            "Account not configured for active sending (missing corpId or corpSecret)"
+          ),
+        };
+      }
+      if (!account.openKfId) {
+        return {
+          channel: "wecom-kf",
+          ok: false,
+          messageId: "",
+          error: new Error(
+            "openKfId required for outbound sending but not configured. Set openKfId in channel config for active sends."
           ),
         };
       }
@@ -334,7 +344,8 @@ export const wecomKfPlugin = {
         const result = await sendKfTextMessage(
           account,
           parsed.userId,
-          params.text
+          params.text,
+          account.openKfId
         );
         return {
           channel: "wecom-kf",
@@ -363,13 +374,23 @@ export const wecomKfPlugin = {
       mimeType?: string;
     }) => {
       const account = resolveAccount(params.cfg, params.accountId);
-      if (!account.canSendActive || !account.openKfId) {
+      if (!account.canSendActive) {
         return {
           channel: "wecom-kf",
           ok: false,
           messageId: "",
           error: new Error(
-            "Account not configured for active sending"
+            "Account not configured for active sending (missing corpId or corpSecret)"
+          ),
+        };
+      }
+      if (!account.openKfId) {
+        return {
+          channel: "wecom-kf",
+          ok: false,
+          messageId: "",
+          error: new Error(
+            "openKfId required for outbound media sending but not configured"
           ),
         };
       }
@@ -386,7 +407,7 @@ export const wecomKfPlugin = {
         // Send caption text first if present
         if (params.text?.trim()) {
           try {
-            await sendKfTextMessage(account, parsed.userId, params.text);
+            await sendKfTextMessage(account, parsed.userId, params.text, account.openKfId);
           } catch {
             // Continue even if caption fails
           }

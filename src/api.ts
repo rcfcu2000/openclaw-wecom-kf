@@ -294,14 +294,17 @@ export function splitMessageByBytes(
 
 /**
  * Send a text message to a KF customer, handling chunking + markdown stripping.
+ * openKfId can be provided explicitly (e.g. from inbound message) or falls back to account config.
  */
 export async function sendKfTextMessage(
   account: ResolvedWecomKfAccount,
   externalUserId: string,
-  text: string
+  text: string,
+  openKfId?: string
 ): Promise<KfSendMsgResult> {
-  if (!account.openKfId) {
-    return { errcode: -1, errmsg: "openKfId not configured" };
+  const resolvedOpenKfId = openKfId ?? account.openKfId;
+  if (!resolvedOpenKfId) {
+    return { errcode: -1, errmsg: "openKfId not available (not in config and not provided)" };
   }
   const plainText = stripMarkdown(text);
   const chunks = splitMessageByBytes(plainText, 2048);
@@ -312,7 +315,7 @@ export async function sendKfTextMessage(
   for (const chunk of chunks) {
     lastResult = await sendKfMessage(account, {
       touser: externalUserId,
-      open_kfid: account.openKfId,
+      open_kfid: resolvedOpenKfId,
       msgtype: "text",
       text: { content: chunk },
     });

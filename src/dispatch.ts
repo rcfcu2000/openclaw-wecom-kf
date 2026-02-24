@@ -31,6 +31,7 @@ export async function dispatchKfMessage(params: {
   });
 
   const senderId = msg.external_userid ?? "unknown";
+  const msgOpenKfId = msg.open_kfid;
   const accountConfig = account.config;
   const dmPolicy = resolveDmPolicy(accountConfig);
   const allowFrom = resolveAllowFrom(accountConfig);
@@ -206,7 +207,7 @@ export async function dispatchKfMessage(params: {
     const fullResponse = responseChunks.join("\n\n").trim();
     if (fullResponse) {
       try {
-        await sendKfTextMessage(account, senderId, fullResponse);
+        await sendKfTextMessage(account, senderId, fullResponse, msgOpenKfId);
         logger.info(
           `reply sent to ${senderId}: ${fullResponse.length} chars`
         );

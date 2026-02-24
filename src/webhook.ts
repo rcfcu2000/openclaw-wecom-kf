@@ -53,8 +53,8 @@ export function registerWebhookTarget(target: WebhookTarget): () => void {
 
 const cursorStore = new Map<string, string>();
 
-function getCursorKey(account: ResolvedWecomKfAccount): string {
-  return `${account.accountId}:${account.openKfId ?? ""}`;
+function getCursorKey(accountId: string, openKfId?: string): string {
+  return `${accountId}:${openKfId ?? "all"}`;
 }
 
 // ─── Message Dedup ──────────────────────────────────────────
@@ -149,14 +149,16 @@ async function pullAndDispatchMessages(
   const account = target.account;
   const core = tryGetWecomKfRuntime();
 
-  if (!account.canSendActive) {
-    logger.warn("account not configured for sending, skip pull");
+  if (!account.corpId || !account.corpSecret) {
+    logger.warn("account missing corpId/corpSecret, skip pull");
     return;
   }
 
   pruneProcessedMsgIds();
 
-  const cursorKey = getCursorKey(account);
+  // Use account's openKfId if configured, otherwise sync all KF accounts
+  const configuredOpenKfId = account.openKfId;
+  const cursorKey = getCursorKey(account.accountId, configuredOpenKfId);
   let cursor = cursorStore.get(cursorKey) ?? "";
   let hasMore = true;
 
@@ -174,8 +176,8 @@ async function pullAndDispatchMessages(
       } else if (callbackToken) {
         syncParams.token = callbackToken;
       }
-      if (account.openKfId) {
-        syncParams.open_kfid = account.openKfId;
+      if (configuredOpenKfId) {
+        syncParams.open_kfid = configuredOpenKfId;
       }
 
       const resp = await syncMessages(account, syncParams);

@@ -68,7 +68,7 @@ export type ResolvedWecomKfAccount = {
   corpSecret?: string;
   /** 客服账号 ID */
   openKfId?: string;
-  /** 是否支持主动发送 (corpId + corpSecret + openKfId 均已配置) */
+  /** 是否支持主动发送 (corpId + corpSecret 均已配置) */
   canSendActive: boolean;
   config: WecomKfAccountConfig;
 };
