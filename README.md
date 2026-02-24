@@ -17,11 +17,19 @@
 
 ## 安装
 
-### 方式一：本地构建安装
+### 方式一：从 npm 安装（推荐）
+
+```bash
+openclaw plugins install openclaw-wecom-kf
+```
+
+安装完成后，插件会自动注册到 `~/.openclaw/openclaw.json`。
+
+### 方式二：本地构建安装
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/<your-org>/openclaw-wecom-kf.git
+git clone https://github.com/rcfcu2000/openclaw-wecom-kf.git
 cd openclaw-wecom-kf
 
 # 2. 安装依赖并构建

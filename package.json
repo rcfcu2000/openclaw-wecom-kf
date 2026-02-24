@@ -1,5 +1,5 @@
 {
-  "name": "wecom-kf",
+  "name": "openclaw-wecom-kf",
   "version": "0.1.0",
   "type": "module",
   "description": "OpenClaw WeCom Customer Service (微信客服) channel plugin",
@@ -26,8 +26,9 @@
       "order": 83
     },
     "install": {
+      "npmSpec": "openclaw-wecom-kf",
       "localPath": ".",
-      "defaultChoice": "local"
+      "defaultChoice": "npm"
     }
   },
   "moltbot": {
@@ -48,8 +49,9 @@
       "order": 83
     },
     "install": {
+      "npmSpec": "openclaw-wecom-kf",
       "localPath": ".",
-      "defaultChoice": "local"
+      "defaultChoice": "npm"
     }
   },
   "main": "./dist/index.js",
@@ -62,7 +64,8 @@
   },
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -77,5 +80,5 @@
       "optional": true
     }
   },
-  "private": true
+  "private": false
 }
