@@ -140,7 +140,8 @@ function parseXmlBody(raw: string): Record<string, string> {
 
 async function pullAndDispatchMessages(
   target: WebhookTarget,
-  callbackToken?: string
+  callbackToken?: string,
+  callbackOpenKfId?: string
 ): Promise<void> {
   const logger = createLogger("wecom-kf", {
     log: target.runtime.log,
@@ -156,9 +157,14 @@ async function pullAndDispatchMessages(
 
   pruneProcessedMsgIds();
 
-  // Use account's openKfId if configured, otherwise sync all KF accounts
-  const configuredOpenKfId = account.openKfId;
-  const cursorKey = getCursorKey(account.accountId, configuredOpenKfId);
+  // Resolve openKfId: prefer account config, then callback XML, then fail
+  const effectiveOpenKfId = account.openKfId || callbackOpenKfId;
+  if (!effectiveOpenKfId) {
+    logger.warn("no open_kfid available (not in config, not in callback), skip pull");
+    return;
+  }
+
+  const cursorKey = getCursorKey(account.accountId, effectiveOpenKfId);
   let cursor = cursorStore.get(cursorKey) ?? "";
   let hasMore = true;
 
@@ -176,9 +182,7 @@ async function pullAndDispatchMessages(
       } else if (callbackToken) {
         syncParams.token = callbackToken;
       }
-      if (configuredOpenKfId) {
-        syncParams.open_kfid = configuredOpenKfId;
-      }
+      syncParams.open_kfid = effectiveOpenKfId;
 
       const resp = await syncMessages(account, syncParams);
 
@@ -432,9 +436,10 @@ export async function handleWecomKfWebhookRequest(
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.end("success");
 
-  // Decrypt callback body to extract Token
+  // Decrypt callback body to extract Token and OpenKfId
   const target = signatureMatched[0]!;
   let callbackToken: string | undefined;
+  let callbackOpenKfId: string | undefined;
 
   if (target.account.encodingAESKey) {
     try {
@@ -446,9 +451,9 @@ export async function handleWecomKfWebhookRequest(
       // Callback XML contains <Token>xxx</Token> and <OpenKfId>xxx</OpenKfId>
       const xmlData = parseXmlBody(plaintext);
       callbackToken = xmlData.Token;
-      const openKfId = xmlData.OpenKfId;
+      callbackOpenKfId = xmlData.OpenKfId;
       logger.info(
-        `callback received: openKfId=${openKfId ?? "?"}, hasToken=${Boolean(callbackToken)}`
+        `callback received: openKfId=${callbackOpenKfId ?? "?"}, hasToken=${Boolean(callbackToken)}`
       );
     } catch (err) {
       logger.error(`callback decrypt failed: ${String(err)}`);
@@ -457,7 +462,7 @@ export async function handleWecomKfWebhookRequest(
 
   // Asynchronously pull and dispatch messages
   target.statusSink?.({ lastInboundAt: Date.now() });
-  pullAndDispatchMessages(target, callbackToken).catch((err) => {
+  pullAndDispatchMessages(target, callbackToken, callbackOpenKfId).catch((err) => {
     logger.error(`pullAndDispatch failed: ${String(err)}`);
   });
 
