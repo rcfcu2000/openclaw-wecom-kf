@@ -448,10 +448,27 @@ export async function handleWecomKfWebhookRequest(
         receiveId: target.account.corpId,
         encrypt,
       });
-      // Callback XML contains <Token>xxx</Token> and <OpenKfId>xxx</OpenKfId>
-      const xmlData = parseXmlBody(plaintext);
-      callbackToken = xmlData.Token;
-      callbackOpenKfId = xmlData.OpenKfId;
+      // Parse decrypted callback content (XML or JSON)
+      logger.debug(`callback decrypted (first 500 chars): ${plaintext.slice(0, 500)}`);
+      if (isXmlFormat(plaintext)) {
+        const xmlData = parseXmlBody(plaintext);
+        logger.debug(`callback parsed XML fields: ${JSON.stringify(Object.keys(xmlData))}`);
+        callbackToken = xmlData.Token;
+        callbackOpenKfId = xmlData.OpenKfId;
+      } else {
+        // Try JSON format
+        try {
+          const jsonData = JSON.parse(plaintext);
+          logger.debug(`callback parsed JSON keys: ${JSON.stringify(Object.keys(jsonData))}`);
+          callbackToken = String(jsonData.Token ?? jsonData.token ?? "");
+          callbackOpenKfId = String(jsonData.OpenKfId ?? jsonData.open_kfid ?? "");
+        } catch {
+          logger.warn(`callback plaintext is neither XML nor JSON`);
+        }
+      }
+      // Ensure empty strings are treated as undefined
+      if (!callbackToken) callbackToken = undefined;
+      if (!callbackOpenKfId) callbackOpenKfId = undefined;
       logger.info(
         `callback received: openKfId=${callbackOpenKfId ?? "?"}, hasToken=${Boolean(callbackToken)}`
       );
