@@ -50,7 +50,7 @@ export type {
 // ─── Plugin Entry ───────────────────────────────────────────
 
 const plugin = {
-  id: "wecom-kf",
+  id: "openclaw-wecom-kf",
   name: "WeCom KF",
   description: "微信客服渠道插件，支持外部微信用户通过客服系统与 AI 交互",
   configSchema: {
