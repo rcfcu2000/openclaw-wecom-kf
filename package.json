@@ -1,0 +1,81 @@
+{
+  "name": "wecom-kf",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OpenClaw WeCom Customer Service (微信客服) channel plugin",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "openclaw.plugin.json"
+  ],
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "channel": {
+      "id": "wecom-kf",
+      "label": "WeCom KF",
+      "selectionLabel": "WeCom Customer Service (微信客服)",
+      "docsPath": "/channels/wecom-kf",
+      "blurb": "微信客服渠道，支持外部微信用户咨询",
+      "aliases": [
+        "weixin-kf",
+        "微信客服",
+        "企微客服"
+      ],
+      "order": 83
+    },
+    "install": {
+      "localPath": ".",
+      "defaultChoice": "local"
+    }
+  },
+  "moltbot": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "channel": {
+      "id": "wecom-kf",
+      "label": "WeCom KF",
+      "selectionLabel": "WeCom Customer Service (微信客服)",
+      "docsPath": "/channels/wecom-kf",
+      "blurb": "微信客服渠道，支持外部微信用户咨询",
+      "aliases": [
+        "weixin-kf",
+        "微信客服",
+        "企微客服"
+      ],
+      "order": 83
+    },
+    "install": {
+      "localPath": ".",
+      "defaultChoice": "local"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.2.0",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "moltbot": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "moltbot": {
+      "optional": true
+    }
+  },
+  "private": true
+}
