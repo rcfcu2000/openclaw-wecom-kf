@@ -539,6 +539,16 @@ export const wecomKfPlugin = {
         webhookPath: path,
         lastStartAt: Date.now(),
       });
+
+      // Keep alive until gateway signals abort; without this the
+      // framework treats the immediate return as "stopped" and
+      // enters the auto-restart loop.
+      if (ctx.abortSignal) {
+        await new Promise<void>((resolve) => {
+          if (ctx.abortSignal!.aborted) { resolve(); return; }
+          ctx.abortSignal!.addEventListener("abort", () => resolve(), { once: true });
+        });
+      }
     },
     stopAccount: async (ctx: {
       accountId: string;

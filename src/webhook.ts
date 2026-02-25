@@ -9,6 +9,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
+import { readFile, writeFile, mkdir } from "fs/promises";
+import { homedir } from "os";
+import { join, dirname } from "path";
 import type {
   PluginConfig,
   ResolvedWecomKfAccount,
@@ -52,6 +55,44 @@ export function registerWebhookTarget(target: WebhookTarget): () => void {
 // ─── Cursor Store (per account:openKfId) ────────────────────
 
 const cursorStore = new Map<string, string>();
+
+const CURSOR_FILE = join(
+  homedir(),
+  ".openclaw",
+  "state",
+  "wecom-kf",
+  "cursors.json"
+);
+let cursorsLoaded = false;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function loadCursors(): Promise<void> {
+  if (cursorsLoaded) return;
+  try {
+    const raw = await readFile(CURSOR_FILE, "utf8");
+    const data = JSON.parse(raw);
+    for (const [k, v] of Object.entries(data)) {
+      if (typeof v === "string") cursorStore.set(k, v);
+    }
+  } catch {
+    // file doesn't exist yet — first run, ok
+  }
+  cursorsLoaded = true;
+}
+
+function scheduleSaveCursors(): void {
+  if (saveTimer) return;
+  saveTimer = setTimeout(async () => {
+    saveTimer = null;
+    try {
+      const obj = Object.fromEntries(cursorStore);
+      await mkdir(dirname(CURSOR_FILE), { recursive: true });
+      await writeFile(CURSOR_FILE, JSON.stringify(obj, null, 2));
+    } catch {
+      // best-effort; will retry on next cursor update
+    }
+  }, 1000);
+}
 
 function getCursorKey(accountId: string, openKfId?: string): string {
   return `${accountId}:${openKfId ?? "all"}`;
@@ -164,8 +205,18 @@ async function pullAndDispatchMessages(
     return;
   }
 
+  await loadCursors();
+
   const cursorKey = getCursorKey(account.accountId, effectiveOpenKfId);
   let cursor = cursorStore.get(cursorKey) ?? "";
+  const isColdStart = !cursor;
+
+  if (isColdStart) {
+    logger.info(
+      `cold start for ${cursorKey} — draining history to advance cursor`
+    );
+  }
+
   let hasMore = true;
 
   while (hasMore) {
@@ -189,11 +240,20 @@ async function pullAndDispatchMessages(
       if (resp.next_cursor) {
         cursorStore.set(cursorKey, resp.next_cursor);
         cursor = resp.next_cursor;
+        scheduleSaveCursors();
       }
       hasMore = resp.has_more === 1;
 
       if (!resp.msg_list || resp.msg_list.length === 0) {
         hasMore = false;
+        continue;
+      }
+
+      // On cold start, skip dispatching — just advance the cursor
+      if (isColdStart) {
+        logger.info(
+          `cold start drain: skipped ${resp.msg_list.length} historical messages`
+        );
         continue;
       }
 
